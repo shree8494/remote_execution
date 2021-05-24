@@ -51,10 +51,7 @@ class Connection(object):
         #print(f"Returning back:\n{out}")
         return out
 
-    def get_connection(self,
-                       host,
-                       username,
-                       password):
+    def get_connection(self, host, username, password):
         
         out, buff = '',''
         self.client = paramiko.SSHClient()
