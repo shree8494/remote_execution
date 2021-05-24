@@ -18,8 +18,8 @@ def remote_execution_ssh(execution_params):
     js_password =execution_params["jmpServerPassword"]
     #oem = execution_params["OEM"]
     device_addresses = execution_params["deviceAddresses"]
-    #device_user = execution_params["deviceUsername"]
-    #device_password = execution_params["devicePassword"]
+    device_user = execution_params["deviceUsername"]
+    device_password = execution_params["devicePassword"]
     commands = execution_params["commands"]
     #device_conn_type=execution_params["deviceConnectionType"]
 
@@ -41,7 +41,8 @@ def remote_execution_ssh(execution_params):
             execution_output[device_address]['output'] +=b"\r\n-------------------"+device_address.encode('ascii')+b"--------------"
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy)
-            client.connect(HOST, port=22, username=js_user, password=js_password)
+            client.connect(device_address, port=22, username=device_user, password=device_password)
+            #client.connect(HOST, port=22, username=js_user, password=js_password)
             remote_connection = client.invoke_shell()
 
             for command in commands:
@@ -77,13 +78,13 @@ def remote_execution_ssh(execution_params):
 
 if __name__=="__main__":
     in1={
-        "jmpServerIp":"192.168.198.80",
-        "jmpServerUsername":"kneel",
-        "jmpServerPassword":"kneel",
-        #"OEM":"cisco",
-        #"deviceUsername":"test",
-        #"devicePassword":"test",
-        "deviceAddresses":["r3"],
+        "jmpServerIp":"10.1.1.20",
+        "jmpServerUsername":"admin",
+        "jmpServerPassword":"admin",
+        "OEM":"cisco",
+        "deviceUsername":"admin",
+        "devicePassword":"admin",
+        "deviceAddresses":["10.1.1.20","10.1.1.21"],
         "commands":["show run","show flash","show version","show start"]
         
         }
