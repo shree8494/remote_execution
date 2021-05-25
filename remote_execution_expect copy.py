@@ -397,16 +397,16 @@ def remote_execution(execution_params):
 
 if __name__=="__main__":
     in1={
-        "jmpServerIp":"192.168.198.80",
-        "jmpServerUsername":"kneel",
-        "jmpServerPassword":"kneel",
+        "jmpServerIp":"192.168.0.30",
+        "jmpServerUsername":"admin",
+        "jmpServerPassword":"admin",
         "OEM":"cisco",
-        "deviceUsername":"test",
-        "devicePassword":"test",
-        "deviceAddresses":["r3","r4"],
+        "deviceUsername":"admin",
+        "devicePassword":"admin",
+        "deviceAddresses":["10.1.1.20","10.1.1.21"],
         "commands":["show version"],
         "deviceConnectionType":"telnet",
-        "isJumpserver":True
+        "isJumpserver":False
         }
     out = remote_execution(in1)
     print(out)

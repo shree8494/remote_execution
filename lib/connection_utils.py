@@ -33,11 +33,11 @@ class SSHConnection(Connection):
     MAX_BUFF = 65535
 
     def __init__(self, execution_params):
-        super().__init__(self, execution_params)
+        super().__init__(execution_params)
         
     def get_prompt(self, deviceType, enterPassword=False, password=''):
 
-        MAX_BUFF = self.MAX_buff
+        MAX_BUFF = self.MAX_BUFF
         out, buff = '',''
         prompt = self.PROMPT[deviceType]
         if enterPassword:
@@ -102,6 +102,7 @@ class SSHConnection(Connection):
             error = ''
 
             try:
+                #print(f"Connecting to {device}\n")
                 self.connection.send(f"ssh -o \"StrictHostKeyChecking=no\" \
                 {self.user}@{device}\n")
 
@@ -111,6 +112,7 @@ class SSHConnection(Connection):
                                       enterPassword=True,
                                       password=self.password) + "\r\n"
                 out += self.run_commands_ssh()
+                time.sleep(1)
 
             except:
                 error = "Internal error" + traceback.format_exc()
@@ -156,20 +158,24 @@ class SSHConnection(Connection):
             self.execute_direct_ssh()
         return self.log
 
-class TelnetConnection(object):
+class TelnetConnection(Connection):
 
     USER_TIMEOUT = 10
 
     def __init__(self, execution_params):
-        super().__init__(self, execution_params)
+        super().__init__(execution_params)
 
     def run_commands_telnet(self):
-        out = ""
-        self.tn.write(b"terminal length 0 \n")                   
+        out = b""
+        self.tn.write(b"terminal length 0\n")
+        out += self.tn.read_until(b"#",timeout=self.USER_TIMEOUT)           
         for command in self.commands:
-            out += f"\r\n------------{command} Output-------------\r\n"
+            #print(f"Sending command {command}")
+            out += f"\r\n------------{command} Output-------------\r\n".encode('ascii')
             self.tn.write(command.encode('ascii')+b"\n")
             out += self.tn.read_until(b"#",timeout=self.USER_TIMEOUT)
+            time.sleep(1)
+        
         return out
 
     def execute_jmp_telnet(self):
@@ -177,55 +183,80 @@ class TelnetConnection(object):
         timeout = self.USER_TIMEOUT
         error = ""
 
-        out = f"\r\n-------------------JumpServer--------------\r\n"
+        out = b"\r\n-------------------JumpServer--------------\r\n"
         self.tn = telnetlib.Telnet(self.jmp_server,timeout=timeout)
-        out += self.tn.read_until(b"login:")       
+        out += self.tn.read_until(b"login:")     
         self.tn.write(self.js_user.encode('ascii') + b"\n")
-        out += self.tn.read_until(b"Password:") 
+        out += self.tn.read_until(b"Password:")
         self.tn.write(self.js_password.encode('ascii') + b"\n")    
         out += self.tn.read_until(b"~$")
         for device in self.addresses:
             try:
-                out += f"\r\n-------------------{device}--------------\r\n"
+                #print(f"Connecting to {device}")
+                out += f"\r\n-------------------{device}--------------\r\n".encode('ascii')
                 self.tn.write(f"telnet {device}\n".encode('ascii'))
                 out += self.tn.read_until(b"Username:")
-                self.tn.write(self.user.encode('ascii'))
+                
+                self.tn.write(self.user.encode('ascii') + b"\n")
                 out += self.tn.read_until(b"Password:")
-                self.tn.write(self.password.encode('ascii'))
+                
+                self.tn.write(self.password.encode('ascii') + b"\n")
                 out += self.tn.read_until(b"#",timeout=timeout)
+                #print("Got prompt\n")
                 out += self.run_commands_telnet()
+                '''
+                self.tn.write(b"terminal length 0\n")
+                out += self.tn.read_until(b"#")   
+                time.sleep(1)      
+                for command in self.commands:
+                    print(f"Sending command {command}")
+                    out += f"\r\n------------{command} Output-------------\r\n".encode('ascii')
+                    self.tn.write(command.encode('ascii')+b"\n")
+                    #buff = self.tn.read_until(b"#",timeout=self.USER_TIMEOUT)
+                    print("Received:\n")
+                    #print(buff.decode('ascii'))
+                    out += self.tn.read_until(b"#",timeout=self.USER_TIMEOUT)
+                    time.sleep(1)
+                '''
+                self.tn.write(b"exit\n")
+                time.sleep(1)
 
             except:
                 error = "Internal error" + traceback.format_exc()
             finally:
-                self.execution_output[device] = {'output': out,
+                self.execution_output[device] = {'output': out.decode('ascii'),
                                                  'error': error,
                                                  'progress': 100}
-                self.log = out
+                self.log = out.decode('ascii')
         return None
 
     def execute_direct_telnet(self):
 
         timeout = self.USER_TIMEOUT
         error = ""
+        out = b""
 
         for device in self.addresses:
             try:
-                out = f"\r\n-------------------{device}--------------\r\n"
+                #print(f"connecting to {device}")
+                out += f"\r\n-------------------{device}--------------\r\n".encode('ascii')
                 self.tn = telnetlib.Telnet(device,timeout=timeout)
                 out += self.tn.read_until(b"Username:")
-                self.tn.write(self.user.encode('ascii'))
+                self.tn.write(self.user.encode('ascii') + b"\n")
                 out += self.tn.read_until(b"Password:")
-                self.tn.write(self.password.encode('ascii'))
+                self.tn.write(self.password.encode('ascii') + b"\n")
                 out += self.tn.read_until(b"#",timeout=timeout)
                 out += self.run_commands_telnet()
+                self.tn.write(b"exit\n")
+                time.sleep(1)
+
             except:
                 error = "Internal error" + traceback.format_exc()
             finally:
-                self.execution_output[device] = {'output': out,
+                self.execution_output[device] = {'output': out.decode('ascii'),
                                                  'error': error,
                                                  'progress': 100}
-                self.log = out
+                self.log = out.decode('ascii')
         return None
         
     def execute(self):
@@ -235,4 +266,5 @@ class TelnetConnection(object):
             self.execute_jmp_telnet()
         else:
             self.execute_direct_telnet()
+        self.tn.close()
         return self.log
