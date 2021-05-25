@@ -19,7 +19,7 @@ class Connection(object):
         self.OEM = execution_params['OEM']
         self.deviceUsername = execution_params['deviceUsername']
         self.devicePassword = execution_params['devicePassword']
-        self.useJmpServer = execution_params['useJmpServer']
+        self.useJmpServer = execution_params['isJumpserver']
         self.deviceAddresses = execution_params['deviceAddresses']
         self.commands = execution_params['commands']
         self.output_filename = execution_params['output_filename']
