@@ -16,18 +16,34 @@
 
 }
 '''
-#import queue
-#from  run_single_device import run_single_device
-#import psycopg2
-#import dbconstants
-#import re
-#import telnetlib
-#import time
-#import traceback
-#import datetime
-#import uuid
+import psycopg2
+import dbconstants
+import datetime
+import uuid
 from lib.connection_utils import SSHConnection, TelnetConnection
 #from threading import Thread
+
+def update_db(out, execution_params):
+
+    conn=psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS)
+    sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
+             		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
+    ip_hostname = ','.join(execution_params['deviceAddresses'])
+    unique_uuid=uuid.uuid4().hex
+    Update_EachIP_log = (unique_uuid,
+                         "Remote Command Execution",
+                         ip_hostname,
+                         execution_params['OEM'],
+                         datetime.datetime.now(),
+                         "Admin",
+                         out,
+                         execution_params['deviceConnectionType'])
+    cur=conn.cursor()
+    cur.execute(sql_update_log, Update_EachIP_log)
+    conn.commit()
+    cur.close()
+    conn.close()
+    return None
 
 def remote_execution(execution_params):
     if execution_params['deviceConnectionType'] == 'telnet':
@@ -36,7 +52,9 @@ def remote_execution(execution_params):
         c = SSHConnection(execution_params)
     else:
         raise Exception("Invalid connection type")
-    return c.execute()
+    out=c.execute()
+    update_db(out, execution_params)
+    return out
 
 def test_all(execution_params):
     print("Case-1: SSH with Jumpbox\n")

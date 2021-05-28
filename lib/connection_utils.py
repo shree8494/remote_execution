@@ -1,9 +1,5 @@
 import paramiko
 import time
-import psycopg2
-import dbconstants
-import datetime
-import uuid
 import traceback
 import telnetlib
 
@@ -94,17 +90,13 @@ class SSHConnection(Connection):
         return out
 
     def execute_jmp_ssh(self):
-        conn=psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS)
-
-        sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
-             		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
+        
         out = f"\r\n-------------------JumpServer--------------\r\n"
         out += self.get_connection(host=self.jmp_server,
                                    username=self.js_user,
                                    password=self.js_password,
                                    type=self.js_type) + "\r\n"
-        unique_uuid=uuid.uuid4().hex
-        ip_hostname=""
+        
         for device in self.addresses:
             out += f"\r\n-------------------{device}--------------\r\n"
             #output = {}
@@ -132,28 +124,16 @@ class SSHConnection(Connection):
                                                  'error': error,
                                                  'progress': 100}
                 self.log = out
-                ip_hostname+=device+","
-        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-        cur=conn.cursor()
-        cur.execute(sql_update_log, Update_EachIP_log)
-        conn.commit()
-        cur.close()
-        conn.close()
+                
         self.client.close()
         return None
 
     def execute_direct_ssh(self):
 
         out = ""
-        unique_uuid=uuid.uuid4().hex
-        ip_hostname=""
         for device in self.addresses:
             out += f"\r\n-------------------{device}--------------\r\n"
             try:
-                conn=psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS)
-
-                sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
-             		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
                 out += self.get_connection(host=device,
                                     username=self.user,
                                     password=self.password,
@@ -169,13 +149,7 @@ class SSHConnection(Connection):
                                                  'error': error,
                                                  'progress': 100}
                 self.log = out
-                ip_hostname+=device+","
-        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-        cur=conn.cursor()
-        cur.execute(sql_update_log, Update_EachIP_log)
-        conn.commit()
-        cur.close()
-        conn.close()
+                
         self.client.close()
         return None
 
@@ -209,10 +183,7 @@ class TelnetConnection(Connection):
         return out
 
     def execute_jmp_telnet(self):
-        conn=psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS)
-
-        sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
-             		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
+        
         timeout = self.USER_TIMEOUT
         error = ""
 
@@ -222,9 +193,7 @@ class TelnetConnection(Connection):
         self.tn.write(self.js_user.encode('ascii') + b"\n")
         out += self.tn.read_until(b"Password:")
         self.tn.write(self.js_password.encode('ascii') + b"\n")    
-        out += self.tn.read_until(b"~$")
-        unique_uuid=uuid.uuid4().hex
-        ip_hostname="" 
+        out += self.tn.read_until(b"~$") 
         for device in self.addresses:
             try:
                 
@@ -265,13 +234,6 @@ class TelnetConnection(Connection):
                                                  'error': error,
                                                  'progress': 100}
                 self.log = out.decode('ascii')
-                ip_hostname+=device+","
-        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-        cur=conn.cursor()
-        cur.execute(sql_update_log, Update_EachIP_log)
-        conn.commit()
-        cur.close()
-        conn.close()
         return None
 
     def execute_direct_telnet(self):
@@ -279,15 +241,10 @@ class TelnetConnection(Connection):
         timeout = self.USER_TIMEOUT
         error = ""
         out = b""
-        unique_uuid=uuid.uuid4().hex
-        ip_hostname=""
         for device in self.addresses:
             try:
                 #print(f"connecting to {device}")
-                conn=psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS)
-
-                sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
-             		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
+                
                 out += f"\r\n-------------------{device}--------------\r\n".encode('ascii')
                 self.tn = telnetlib.Telnet(device,timeout=timeout)
                 out += self.tn.read_until(b"Username:")
@@ -307,13 +264,6 @@ class TelnetConnection(Connection):
                                                  'error': error,
                                                  'progress': 100}
                 self.log = out.decode('ascii')
-                ip_hostname+=device+","
-        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-        cur=conn.cursor()
-        cur.execute(sql_update_log, Update_EachIP_log)
-        conn.commit()
-        cur.close()
-        conn.close()
         return None
         
     def execute(self):
