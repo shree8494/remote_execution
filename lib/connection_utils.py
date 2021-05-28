@@ -133,12 +133,12 @@ class SSHConnection(Connection):
                                                  'progress': 100}
                 self.log = out
                 ip_hostname+=device+","
-                Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-                cur=conn.cursor()
-                cur.execute(sql_update_log, Update_EachIP_log)
-                conn.commit()
-                cur.close()
-                conn.close()
+        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
+        cur=conn.cursor()
+        cur.execute(sql_update_log, Update_EachIP_log)
+        conn.commit()
+        cur.close()
+        conn.close()
         self.client.close()
         return None
 
@@ -170,12 +170,12 @@ class SSHConnection(Connection):
                                                  'progress': 100}
                 self.log = out
                 ip_hostname+=device+","
-                Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-                cur=conn.cursor()
-                cur.execute(sql_update_log, Update_EachIP_log)
-                conn.commit()
-                cur.close()
-                conn.close()
+        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
+        cur=conn.cursor()
+        cur.execute(sql_update_log, Update_EachIP_log)
+        conn.commit()
+        cur.close()
+        conn.close()
         self.client.close()
         return None
 
@@ -266,12 +266,12 @@ class TelnetConnection(Connection):
                                                  'progress': 100}
                 self.log = out.decode('ascii')
                 ip_hostname+=device+","
-                Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-                cur=conn.cursor()
-                cur.execute(sql_update_log, Update_EachIP_log)
-                conn.commit()
-                cur.close()
-                conn.close()
+        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
+        cur=conn.cursor()
+        cur.execute(sql_update_log, Update_EachIP_log)
+        conn.commit()
+        cur.close()
+        conn.close()
         return None
 
     def execute_direct_telnet(self):
@@ -308,12 +308,12 @@ class TelnetConnection(Connection):
                                                  'progress': 100}
                 self.log = out.decode('ascii')
                 ip_hostname+=device+","
-                Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
-                cur=conn.cursor()
-                cur.execute(sql_update_log, Update_EachIP_log)
-                conn.commit()
-                cur.close()
-                conn.close()
+        Update_EachIP_log = (unique_uuid,"Remote Command Execution" ,ip_hostname,self.oem,datetime.datetime.now(),"Admin",self.log,self.conn_type)
+        cur=conn.cursor()
+        cur.execute(sql_update_log, Update_EachIP_log)
+        conn.commit()
+        cur.close()
+        conn.close()
         return None
         
     def execute(self):
