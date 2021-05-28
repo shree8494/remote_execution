@@ -10,15 +10,13 @@ class Connection(object):
         self.jmp_server = execution_params['jmpServerIp']
         self.js_user = execution_params["jmpServerUsername"]
         self.js_password = execution_params["jmpServerPassword"]
-        #self.jmpServerType = 'linux'
         self.oem = execution_params['OEM'].lower()
         self.user = execution_params['deviceUsername']
         self.password = execution_params['devicePassword']
-        self.is_jmp = execution_params['isJumpServer']
+        self.is_jmp = execution_params['isJumpserver']
         self.addresses = execution_params['deviceAddresses']
         self.commands = execution_params['commands']
-        #self.conn_type = execution_params['deviceConnectionType']
-        #self.output_filename = execution_params['output_filename']
+        self.conn_type = execution_params['deviceConnectionType']
         self.execution_output = {'output':'',
                                  'error':'',
                                  'progress':''}
@@ -27,9 +25,9 @@ class Connection(object):
 class SSHConnection(Connection):
 
     PROMPT = {'linux': '~$',
-              'cisco': '#'}
+              'cisco': '#', 'cisco ios':'#'}
     PW_PROMPT = {'linux': 'password:',
-                 'cisco': 'Password:'}
+                 'cisco': 'Password:', 'cisco ios': 'Password:'}
     MAX_BUFF = 65535
 
     def __init__(self, execution_params):
@@ -107,16 +105,16 @@ class SSHConnection(Connection):
                 {self.user}@{device}\n")
 
                 time.sleep(1)
-
                 out += self.get_prompt(deviceType=self.oem,
                                       enterPassword=True,
                                       password=self.password) + "\r\n"
+                
                 out += self.run_commands_ssh()
                 time.sleep(1)
 
             except:
                 error = "Internal error" + traceback.format_exc()
-
+                out+=error
             finally:
                 progress = 100
                 self.execution_output[device] = {'output': out,
@@ -129,9 +127,12 @@ class SSHConnection(Connection):
     def execute_direct_ssh(self):
 
         out = ""
+        unique_uuid=uuid.uuid4().hex
+        ip_hostname=""
         for device in self.addresses:
             out += f"\r\n-------------------{device}--------------\r\n"
             try:
+
                 out += self.get_connection(host=device,
                                     username=self.user,
                                     password=self.password,
@@ -140,6 +141,7 @@ class SSHConnection(Connection):
                 out += self.run_commands_ssh()
             except:
                 error = "Internal error" + traceback.format_exc()
+                out+=error
             finally:
                 progress = 100
                 self.execution_output[device] = {'output': out,
@@ -190,8 +192,11 @@ class TelnetConnection(Connection):
         out += self.tn.read_until(b"Password:")
         self.tn.write(self.js_password.encode('ascii') + b"\n")    
         out += self.tn.read_until(b"~$")
+        unique_uuid=uuid.uuid4().hex
+        ip_hostname="" 
         for device in self.addresses:
             try:
+                
                 #print(f"Connecting to {device}")
                 out += f"\r\n-------------------{device}--------------\r\n".encode('ascii')
                 self.tn.write(f"telnet {device}\n".encode('ascii'))
@@ -204,25 +209,12 @@ class TelnetConnection(Connection):
                 out += self.tn.read_until(b"#",timeout=timeout)
                 #print("Got prompt\n")
                 out += self.run_commands_telnet()
-                '''
-                self.tn.write(b"terminal length 0\n")
-                out += self.tn.read_until(b"#")   
-                time.sleep(1)      
-                for command in self.commands:
-                    print(f"Sending command {command}")
-                    out += f"\r\n------------{command} Output-------------\r\n".encode('ascii')
-                    self.tn.write(command.encode('ascii')+b"\n")
-                    #buff = self.tn.read_until(b"#",timeout=self.USER_TIMEOUT)
-                    print("Received:\n")
-                    #print(buff.decode('ascii'))
-                    out += self.tn.read_until(b"#",timeout=self.USER_TIMEOUT)
-                    time.sleep(1)
-                '''
                 self.tn.write(b"exit\n")
                 time.sleep(1)
 
             except:
                 error = "Internal error" + traceback.format_exc()
+                out+=error
             finally:
                 self.execution_output[device] = {'output': out.decode('ascii'),
                                                  'error': error,
@@ -235,7 +227,8 @@ class TelnetConnection(Connection):
         timeout = self.USER_TIMEOUT
         error = ""
         out = b""
-
+        unique_uuid=uuid.uuid4().hex
+        ip_hostname=""
         for device in self.addresses:
             try:
                 #print(f"connecting to {device}")
@@ -252,6 +245,7 @@ class TelnetConnection(Connection):
 
             except:
                 error = "Internal error" + traceback.format_exc()
+                out+=error
             finally:
                 self.execution_output[device] = {'output': out.decode('ascii'),
                                                  'error': error,
