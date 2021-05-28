@@ -18,4 +18,4 @@ if __name__ == "__main__":
         }
     c = Connection(in1)
     c.execute()
-    print(c.execution_output)
+    print(c.execution_output['10.1.1.20']['output']['show version'])

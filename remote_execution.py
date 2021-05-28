@@ -45,21 +45,17 @@ def remote_execution(execution_params):
         tn = telnetlib.Telnet(HOST,timeout=user_timeout)
         try:            
             out +=b"-------------------"+device_address.encode('ascii')+b"start---------------"
-            
-            out += tn.read_until(b"ubuntu login:")       
+            out += tn.read_until(b"Username:")       
             tn.write(js_user.encode('ascii') + b"\n")
             out += tn.read_until(b"Password:") 
             tn.write(js_password.encode('ascii') + b"\n")    
-            out += tn.read_until(b"admin@ubuntu:~$")         
+            out += tn.read_until(b"access-Router#")         
             
-            #tn.write(device_address.encode('ascii') + b"\n")        
+            tn.write(device_address.encode('ascii') + b"\n")        
             
-            tn.write(b"ssh admin@10.1.1.20\n")
             tn.write(b"\n") 
             
-            #out += tn.read_until(b"\n"+device_address.encode('ascii'),timeout=user_timeout)
-            out += tn.read_until(b"Password:")
-            tn.write("admin\n")
+            out += tn.read_until(b"\n"+device_address.encode('ascii'),timeout=user_timeout) 
             out += tn.read_until(b"#",timeout=user_timeout) 
             tn.write(b"terminal length 0 \n")                   
             for command in commands:
@@ -69,15 +65,15 @@ def remote_execution(execution_params):
                 out += tn.read_until(b"#",timeout=user_timeout) 
                 print(command)
             print("done")     
-            print(out)    
+                
                 
                 
             
-            #tn.write((chr(30) + 'x').encode('ascii'))
-            #out += tn.read_until(b"SNGHQ1-DSTA#")         
-            #tn.write(b'exit\n')        
-            #out += tn.read_until(b"[confirm]")            
-            #tn.write(b'y')
+            tn.write((chr(30) + 'x').encode('ascii'))
+            out += tn.read_until(b"access-Router#")         
+            tn.write(b'exit\n')        
+            out += tn.read_until(b"[confirm]")            
+            tn.write(b'y')
         except:
             print(traceback.format_exc())
         finally:
@@ -93,20 +89,18 @@ def remote_execution(execution_params):
     return ""
 if __name__=="__main__":
     in1={
-        #"jmpServerIp":"192.168.198.80",
-        "jmpServerIp":"192.168.0.30",
-        #"jmpServerUsername":"kneel",
-        #"jmpServerPassword":"kneel",
-        "jmpServerUsername":"admin",
-        "jmpServerPassword":"admin",
+        "jmpServerIp":"192.168.198.80",
+        "jmpServerUsername":"kneel",
+        "jmpServerPassword":"kneel",
         "OEM":"cisco",
-        #"deviceUsername":"test",
-        #"devicePassword":"test",
-        "deviceUsername":"admin",
-        "devicePassword":"admin",
-        "deviceAddresses":["10.1.1.20"],
+        "deviceUsername":"test",
+        "devicePassword":"test",
+        "deviceAddresses":["r3"],
         "commands":["show run","show flash","show version","show start"]
         
         }
     out=remote_execution(in1)
     print(out)
+                        
+
+    

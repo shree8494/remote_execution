@@ -1,0 +1,55 @@
+local-user <name>
+password simple <password>
+authorizationattribute level 3
+
+
+
+
+---Local User ID and Password
+
+provision:
+password manager user-name <name> plaintext <password>
+
+
+comware5:
+local-user <name>
+password simple <password>
+authorizationattribute level 3
+
+
+
+----
+provision:
+console baud-rate ?
+speed-sense
+1200
+2400
+4800
+9600
+19200
+38400
+57600
+115200
+
+
+comware5:
+user-interface aux 0
+speed ?
+300 Only async serial user terminal interface can be configured
+600 Only async serial user terminal interface can be configured
+1200 Only async serial user terminal interface can be configured
+2400 Only async serial user terminal interface can be configured
+4800 Only async serial user terminal interface can be configured
+9600 Only async serial user terminal interface can be configured
+19200 Only async serial user terminal interface can be configured
+38400 Only async serial user terminal interface can be configured
+57600 Only async serial user terminal interface can be configured
+115200 Only
+
+
+---Source Interface for Management Communications
+provision
+
+ip sourceinterface radius 10.0.100.24
+
+comware5:radius nas-ip 10.0.100.24
