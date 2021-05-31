@@ -8,7 +8,7 @@ import os
 import traceback
 import upgrade_firmware
 import configuration_convertor
-import remote_execution_expect_1
+import remote_execution_expect
 import report
 import report_uf
 import report_admin_uf
@@ -53,7 +53,7 @@ def send_output(path):
 def handle_remote_execution():
 
   request_json = request.get_json()
-  out=remote_execution_expect_1.remote_execution(request_json)
+  out=remote_execution_expect.remote_execution(request_json)
   return jsonify(out)
 
 
