@@ -51,7 +51,7 @@ def send_output(path):
 
 @app.route('/api/remote-execution', methods=['POST'])
 def handle_remote_execution():
-
+  
   request_json = request.get_json()
   out=remote_execution.remote_execution(request_json)
   return jsonify(out)
@@ -61,8 +61,8 @@ def handle_remote_execution():
 def handle_upgrader_firmware():
 
   request_json = request.get_json()
-
-  out=upgrade_firmware.fun_upgrade_firmware(request_json)
+  out=upgrade_firmware.upgrade_firmware(request_json)
+  #print(out)
   return jsonify(out)
 
 

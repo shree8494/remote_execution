@@ -57,9 +57,9 @@ def remote_execution(execution_params):
         c = SSHConnection(execution_params)
     else:
         raise Exception("Invalid connection type")
-    out = c.execute()
-    update_db(out, execution_params)
-    return out
+    c.execute()
+    update_db(c.log, execution_params)
+    return c.execution_output
 
 def test_all(execution_params):
     print("Case-1: SSH with Jumpbox\n")
@@ -83,15 +83,15 @@ def test_all(execution_params):
 
 if __name__=="__main__":
     in1={
-        "jmpServerIp":"34.207.61.121",
-        "jmpServerUsername":"ubuntu",
-        "jmpServerPassword":"ubuntu",
+        "jmpServerIp":"192.168.0.30",
+        "jmpServerUsername":"admin",
+        "jmpServerPassword":"admin",
         "OEM":"cisco",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["172.31.61.171"],
+        "deviceAddresses":["10.1.1.20"],
         "commands":["show version", "show ip int br"],
-        "deviceConnectionType":"ssh",
+        "deviceConnectionType":"telnet",
         "isJumpserver":True
         }
     #out = test_all(in1)
