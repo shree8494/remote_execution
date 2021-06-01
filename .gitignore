@@ -1,2 +1,7 @@
 lib/__pycache__/*
+__pycache__/*
 output/*.txt
+.vscode/*
+test*
+Pipfile*
+*.backup

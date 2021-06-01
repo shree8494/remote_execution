@@ -4,11 +4,11 @@ Created on Mon Dec  3 22:24:23 2018
 
 @author: Shubha.KS
 """
-import os
+#import os
 import traceback
 import upgrade_firmware
 import configuration_convertor
-import remote_execution_expect_1
+import remote_execution
 import report
 import report_uf
 import report_admin_uf
@@ -51,9 +51,9 @@ def send_output(path):
 
 @app.route('/api/remote-execution', methods=['POST'])
 def handle_remote_execution():
-
+  
   request_json = request.get_json()
-  out=remote_execution_expect_1.remote_execution(request_json)
+  out=remote_execution.remote_execution(request_json)
   return jsonify(out)
 
 
@@ -61,8 +61,8 @@ def handle_remote_execution():
 def handle_upgrader_firmware():
 
   request_json = request.get_json()
-
-  out=upgrade_firmware.fun_upgrade_firmware(request_json)
+  out=upgrade_firmware.upgrade_firmware(request_json)
+  #print(out)
   return jsonify(out)
 
 

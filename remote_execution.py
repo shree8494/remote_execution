@@ -22,85 +22,114 @@ Created on Mon Feb 25 16:24:52 2019
 }
 '''
 
+import psycopg2
+import dbconstants
+import datetime
+import uuid
+import queue
+import threading
+from lib.connection_utils import SSHConnection, TelnetConnection
 
-import telnetlib
-import time
-import traceback
+def update_db(out, execution_params):
 
-def remote_execution(execution_params):   
-    
-    HOST = execution_params["jmpServerIp"]
-    js_user = execution_params["jmpServerUsername"]    
-    js_password =execution_params["jmpServerPassword"]   
-    oem = execution_params["OEM"]
-    device_addresses = execution_params["deviceAddresses"]
-    device_user = execution_params["deviceUsername"]
-    device_password = execution_params["devicePassword"]
-    commands = execution_params["commands"]
-    out=b""
-    user_timeout=10
-    
-    for device_address in device_addresses:
-        print(device_address)
-        tn = telnetlib.Telnet(HOST,timeout=user_timeout)
-        try:            
-            out +=b"-------------------"+device_address.encode('ascii')+b"start---------------"
-            out += tn.read_until(b"Username:")       
-            tn.write(js_user.encode('ascii') + b"\n")
-            out += tn.read_until(b"Password:") 
-            tn.write(js_password.encode('ascii') + b"\n")    
-            out += tn.read_until(b"access-Router#")         
-            
-            tn.write(device_address.encode('ascii') + b"\n")        
-            
-            tn.write(b"\n") 
-            
-            out += tn.read_until(b"\n"+device_address.encode('ascii'),timeout=user_timeout) 
-            out += tn.read_until(b"#",timeout=user_timeout) 
-            tn.write(b"terminal length 0 \n")                   
-            for command in commands:
-                
-                tn.write(command.encode('ascii')+b"\n")
-                out += tn.read_until(b"\n"+device_address.encode('ascii'),timeout=user_timeout) 
-                out += tn.read_until(b"#",timeout=user_timeout) 
-                print(command)
-            print("done")     
-                
-                
-                
-            
-            tn.write((chr(30) + 'x').encode('ascii'))
-            out += tn.read_until(b"access-Router#")         
-            tn.write(b'exit\n')        
-            out += tn.read_until(b"[confirm]")            
-            tn.write(b'y')
-        except:
-            print(traceback.format_exc())
-        finally:
-            try:
-                tn.close()
-            except:
-                print(traceback.format_exc())
-    print("done")
-    saveoutput=open("output/remote_cmd_output.txt","w")
-    saveoutput.write(out.decode('ascii', 'ignore'))
-    saveoutput.write("\n")
-    saveoutput.close()
-    return ""
+    sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
+             		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
+    ip_hostname = ','.join(execution_params['deviceAddresses'])
+    unique_uuid=uuid.uuid4().hex
+    Update_EachIP_log = (unique_uuid,
+                         "Remote Command Execution",
+                         ip_hostname,
+                         execution_params['OEM'],
+                         datetime.datetime.now(),
+                         "Admin",
+                         out,
+                         execution_params['deviceConnectionType'])
+    with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql_update_log, Update_EachIP_log)
+        conn.commit()
+    '''
+    cur=conn.cursor()
+    cur.execute(sql_update_log, Update_EachIP_log)
+    conn.commit()
+    cur.close()
+    conn.close()
+    '''
+    return None
+
+def remote_execution(execution_params):
+
+    output_q = queue.Queue()
+    thread_list = []
+    log_dict, output = {},{}
+    log = ''
+    for device in execution_params['deviceAddresses']:
+        single_device_params = execution_params.copy()
+        single_device_params['device'] = device
+        device_thread = threading.Thread(target=remote_execution_device, args=(single_device_params, output_q))
+        device_thread.start()
+        thread_list.append(device_thread)
+
+    for device_thread in thread_list:
+        device_thread.join()
+
+    while not output_q.empty():
+        device, device_log, device_output = output_q.get()
+        output[device] = device_output
+        log_dict[device] = device_log
+    for device in sorted(list(log_dict.keys())):
+        log += log_dict[device]
+    #update_db(log, execution_params)
+    return log
+
+
+def remote_execution_device(single_device_params, output_q):
+    if single_device_params['deviceConnectionType'] == 'telnet':
+        c = TelnetConnection(single_device_params)
+    elif single_device_params['deviceConnectionType'] == 'ssh':
+        c = SSHConnection(single_device_params)
+    else:
+        raise Exception("Invalid connection type")
+    c.execute()
+    #out_dict = {single_device_params['device']: (c.log, c.execution_output)}
+    output_q.put((single_device_params['device'], c.log, c.execution_output))
+    return None
+    #update_db(c.log, single_device_params)
+    #return c.execution_output
+
+def test_all(execution_params):
+    print("Case-1: SSH with Jumpbox\n")
+    print(remote_execution(execution_params))
+    print("-----------------------------------")
+    print("Case-2: SSH Direct\n")
+    execution_params['isJumpServer'] = False
+    print(remote_execution(execution_params))
+    print("-----------------------------------")
+    print("Case-3: Telnet with Jumpbox\n")
+    execution_params['deviceConnectionType'] = 'telnet'
+    execution_params['isJumpServer'] = True
+    print(remote_execution(execution_params))
+    print("-----------------------------------")
+    print("Case-4: Telnet Direct\n")
+    execution_params['deviceConnectionType'] = 'telnet'
+    execution_params['isJumpServer'] = False
+    print(remote_execution(execution_params))
+    print("-----------------------------------")
+
+
 if __name__=="__main__":
     in1={
-        "jmpServerIp":"192.168.198.80",
-        "jmpServerUsername":"kneel",
-        "jmpServerPassword":"kneel",
+        "jmpServerIp":"192.168.0.30",
+        "jmpServerUsername":"admin",
+        "jmpServerPassword":"admin",
         "OEM":"cisco",
-        "deviceUsername":"test",
-        "devicePassword":"test",
-        "deviceAddresses":["r3"],
-        "commands":["show run","show flash","show version","show start"]
-        
+        "deviceUsername":"admin",
+        "devicePassword":"admin",
+        "deviceAddresses":["10.1.1.20","10.1.1.21"],
+        "commands":["show version", "show ip int br"],
+        "deviceConnectionType":"ssh",
+        "isJumpserver":True
         }
+    #out = test_all(in1)
     out=remote_execution(in1)
     print(out)
-                        
-
-    
