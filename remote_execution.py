@@ -33,7 +33,7 @@ def update_db(out, execution_params):
     '''
     return None
 
-def remote_execution(execution_params):
+def remote_execution(execution_params, update_db=True, return_log=False):
 
     output_q = queue.Queue()
     thread_list = []
@@ -55,8 +55,12 @@ def remote_execution(execution_params):
         log_dict[device] = device_log
     for device in sorted(list(log_dict.keys())):
         log += log_dict[device]
-    #update_db(log, execution_params)
-    return output
+    if update_db:
+        update_db(log, execution_params)
+    if return_log:
+        return log, output
+    else:
+        return output
 
 
 def remote_execution_device(single_device_params, output_q):
