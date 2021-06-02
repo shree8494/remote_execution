@@ -178,6 +178,6 @@ if __name__ == "__main__":
     #oem = 'Cisco IOS'
     #current_version = get_version(in1, oem)
     #print(get_compatible_versions(current_version, oem))
-    print(get_firmware_path('Version 15.3','Cisco IOS'))
-    #print(ping_handler(request))
+    #print(get_firmware_path('Version 15.3','Cisco IOS'))
+    print(ping_handler(request))
     #print(predeployment_handler(request))

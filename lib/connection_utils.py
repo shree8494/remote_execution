@@ -122,7 +122,7 @@ class SSHConnection(Connection):
         #output = {}
 
         try:
-            print(f"Connecting to {self.device}\n")
+            #print(f"Connecting to {self.device}\n")
             self.connection.send(f"ssh -o \"StrictHostKeyChecking=no\" \
             {self.user}@{self.device}\n")
 
@@ -272,7 +272,7 @@ class TelnetConnection(Connection):
 
             self.log += self.get_prompt("#")
             #self.log += self.tn.read_until(b"#",timeout=timeout).decode('ascii')
-            
+
             self.execution_output['output'] = self.run_commands_telnet()
             self.tn.write(b"exit\n")
             time.sleep(1)
