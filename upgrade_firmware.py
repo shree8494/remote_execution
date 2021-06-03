@@ -176,11 +176,14 @@ if __name__ == "__main__":
         "devicePassword":"admin",
         "deviceAddresses":["172.31.56.112","172.31.61.171","1.1.1.1"],
         "deviceConnectionType":"ssh",
-        "isJumpserver":True
+        "isJumpserver":False
         }
     #oem = 'Cisco IOS'
     #current_version = get_version(in1, oem)
     #print(get_compatible_versions(current_version, oem))
+<<<<<<< Updated upstream
     #print(get_firmware_path('Version 15.3','Cisco IOS'))
+=======
+>>>>>>> Stashed changes
     print(ping_handler(request))
     #print(predeployment_handler(request))
