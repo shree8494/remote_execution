@@ -19,7 +19,7 @@ def ping_handler(request):
     
     request['commands'] = []
     out = remote_execution.remote_execution(request, update_db=False)
-    print(f"Output:\n{out}")
+    #print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
         response[device] = 'output' in output
@@ -31,11 +31,12 @@ def predeployment_handler(request):
     command = constants.get_version[request['OEM']]
     request['commands'] = [command]
     out = remote_execution.remote_execution(request, update_db=False)
-    print(f"Output:\n{out}")
+    #print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
-        current_version_raw = output['output'][command]
+        
         try:
+            current_version_raw = output['output'][command]
             current_version = get_version(current_version_raw, request['OEM'])
             compatible_versions = get_compatible_versions(current_version,
                                                           request['OEM'])
