@@ -1,27 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 25 16:24:52 2019
-
-@author: shubha.ks
-"""
-
-'''
-
-{
-
-"jmpServerIp":"192.168.198.80",
-"jmpServerUserName":"kneel",
-"jmpServerPassword":"kneel",
-"OEM":"cisco",
-"deviceUsername":"test",
-"devicePassword":"test",
-"deviceAddresses":["r3","r4"],
-"commands":["show flash","show version",
-"show run","show start"]
-
-}
-'''
-
 import psycopg2
 import dbconstants
 import datetime
@@ -80,7 +56,7 @@ def remote_execution(execution_params):
     for device in sorted(list(log_dict.keys())):
         log += log_dict[device]
     #update_db(log, execution_params)
-    return log
+    return output
 
 
 def remote_execution_device(single_device_params, output_q):
@@ -125,9 +101,9 @@ if __name__=="__main__":
         "OEM":"cisco",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["10.1.1.20","10.1.1.21"],
-        "commands":["show version", "show ip int br"],
-        "deviceConnectionType":"ssh",
+        "deviceAddresses":["10.1.1.20","10.1.1.99"],
+        "commands":["show version"],
+        "deviceConnectionType":"telnet",
         "isJumpserver":True
         }
     #out = test_all(in1)
