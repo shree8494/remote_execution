@@ -148,6 +148,25 @@ if __name__ == "__main__":
         System image file is "flash0:/vios_l2-adventerprisek9-m"
         Last reload reason: Unknown reason
         """
+    in2 = r"""
+            Cisco IOS XE Software, Version 17.03.01a\n
+            Cisco IOS Software [Amsterdam], Virtual XE Software (X86_64_LINUX_IOSD-UNIVERSALK9-M), Version 17.3.1a, RELEASE SOFTWARE (fc4)
+            Technical Support: http://www.cisco.com/techsupport
+            Copyright (c) 1986-2020 by Cisco Systems, Inc.
+            Compiled Thu 13-Aug-20 22:14 by mcpre
+
+
+            Cisco IOS-XE software, Copyright (c) 2005-2020 by cisco Systems, Inc.
+            All rights reserved.  Certain components of Cisco IOS-XE software are
+            licensed under the GNU General Public License ("GPL") Version 2.0.  The
+            software code licensed under GPL Version 2.0 is free software that comes
+            with ABSOLUTELY NO WARRANTY.  You can redistribute and/or modify such
+            GPL code under the terms of GPL Version 2.0.  For more details, see the
+            documentation or "License Notice" file accompanying the IOS-XE software,
+            or the applicable URL provided on the flyer accompanying the IOS-XE
+            software.
+            """
+
     
     request = {
         "jmpServerIp":"192.168.0.30",
@@ -162,9 +181,24 @@ if __name__ == "__main__":
         "upgrade_version": "Version 15.3",
         "action": "PreDeployment"
         }
+    
+    aws_request = {
+        "jmpServerIp":"192.168.0.30",
+        "jmpServerUsername":"admin",
+        "jmpServerPassword":"admin",
+        "OEM":"Cisco IOS",
+        "deviceUsername":"admin",
+        "devicePassword":"admin",
+        "deviceAddresses":["18.209.224.60"],
+        "deviceConnectionType":"ssh",
+        "isJumpServer":False,
+        "upgrade_version": "Version 15.3",
+        "action": "PreDeployment"
+    }
     #oem = 'Cisco IOS'
-    #current_version = get_version(in1, oem)
+    #current_version = get_version(in2, oem)
+    #print(current_version)
     #print(get_compatible_versions(current_version, oem))
     #print(get_firmware_path('Version 15.3','Cisco IOS'))
     #print(ping_handler(request))
-    print(upgrade_firmware(request))
+    print(upgrade_firmware(aws_request))
