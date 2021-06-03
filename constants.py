@@ -18,5 +18,5 @@ predeployment_cmds={
 }
 
 show_version = {
-    'Cisco IOS': r"(?P<version>Version\s\S+[^,])"
+    'Cisco IOS': r"(?P<version>Version\s\S[^,|\r|\n|\r\n]+)"
     }
