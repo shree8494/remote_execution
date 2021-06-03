@@ -109,7 +109,7 @@ if __name__=="__main__":
         "deviceAddresses":["10.1.1.20","10.1.1.99"],
         "commands":["show version"],
         "deviceConnectionType":"telnet",
-        "isJumpserver":True
+        "isJumpServer":True
         }
     #out = test_all(in1)
     out=remote_execution(in1)
