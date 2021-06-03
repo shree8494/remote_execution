@@ -1,18 +1,32 @@
 #!/usr/bin/env python
 
-#import queue
-#from  run_single_device import run_single_device
 import psycopg2
 import dbconstants
 import constants
 import re
-#import telnetlib
 import time
 #import traceback
 #import datetime
 #import uuid
 import remote_execution
 from threading import Thread
+
+def get_firmware_path(upgrade_version, oem):
+    
+    query = f"""SELECT ftp_server||ftp_path||'/'||ftp_filename as file_path
+                FROM netauto_uf_version_master
+                WHERE compatible_version = '{upgrade_version}'
+                    AND oem = '{oem}';"""
+    try:
+        with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                out = cur.fetchall()
+            conn.commit()
+        return out[0][0]
+    except Exception as e:
+        raise
+
 
 def get_compatible_versions(current_version, oem):
 
@@ -42,19 +56,21 @@ def get_version(show_version_raw, oem):
     return version
 
 def ping_handler(request):
-
+    
     request['commands'] = []
-    out = remote_execution.remote_execution(request)
-    #print(f"Output:\n{out}")
+    out = remote_execution.remote_execution(request, update_db=False)
+    print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
         response[device] = 'output' in output
+    print(f"Response:\n{response}")
     return response
 
 def predeployment_handler(request):
+
     command = constants.get_version[request['OEM']]
     request['commands'] = [command]
-    out = remote_execution.remote_execution(request)
+    out = remote_execution.remote_execution(request, update_db=False)
     #print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
@@ -68,14 +84,25 @@ def predeployment_handler(request):
         except Exception as e:
             print(e)
             response[device] = {}
+    
     return response
+
+def deployment_handler(request):
+
+    upgrade_version = request['upgrade_version']
+    firmware_path = get_firmware_path(upgrade_version, request['OEM'])
+
+    pass
 
 def upgrade_firmware(request):
 
+    print(f"request:\n{request}")
     if request['action'] == 'Ping':
         return ping_handler(request)
     elif request['action'] == 'PreDeployment':
         return predeployment_handler(request)
+    elif request['action'] == 'Deployment':
+        return deployment_handler(request)
     return None
 
 
@@ -141,18 +168,19 @@ if __name__ == "__main__":
         Configuration register is 0x101"""
     
     request = {
-        "jmpServerIp":"192.168.0.30",
-        "jmpServerUsername":"admin",
-        "jmpServerPassword":"admin",
+        "jmpServerIp":"54.209.112.219",
+        "jmpServerUsername":"ubuntu",
+        "jmpServerPassword":"ubuntu",
         "OEM":"Cisco IOS",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["10.1.1.20","10.1.1.21"],
+        "deviceAddresses":["172.31.56.112","172.31.61.171","1.1.1.1"],
         "deviceConnectionType":"ssh",
         "isJumpserver":True
         }
     #oem = 'Cisco IOS'
     #current_version = get_version(in1, oem)
     #print(get_compatible_versions(current_version, oem))
+    #print(get_firmware_path('Version 15.3','Cisco IOS'))
     #print(ping_handler(request))
     print(predeployment_handler(request))
