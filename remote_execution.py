@@ -42,7 +42,8 @@ def remote_execution(execution_params, update_db=True, return_log=False):
     for device in execution_params['deviceAddresses']:
         single_device_params = execution_params.copy()
         single_device_params['device'] = device
-        device_thread = threading.Thread(target=remote_execution_device, args=(single_device_params, output_q))
+        device_thread = threading.Thread(target=remote_execution_device,
+                                         args=(single_device_params, output_q))
         device_thread.start()
         thread_list.append(device_thread)
 

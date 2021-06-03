@@ -32,19 +32,29 @@ class SSHConnection(Connection):
     def __init__(self, single_device_params):
         super().__init__(single_device_params)
         
-    def get_prompt(self, deviceType, enterPassword=False, password=''):
+    def get_prompt(self,
+                   deviceType=None,
+                   enterPassword=False,
+                   password='',
+                   prompt=None,
+                   timeout=None):
 
         #print("Getting prompt")
         MAX_BUFF = self.MAX_BUFF
         out, buff = '',''
-        prompt = self.PROMPT[deviceType]
+        if not deviceType:
+            deviceType = self.oem
+        if not prompt:
+            prompt = self.PROMPT[deviceType]
+        if not timeout:
+            timeout = self.USER_TIMEOUT
         if enterPassword:
             buff = self.connection.recv(MAX_BUFF).decode('ascii')
             #print(f"Device login: {buff}\n")
             out += buff
             password_prompt = self.PW_PROMPT[deviceType]
 
-            timeout = time.time() + self.USER_TIMEOUT
+            time_max = time.time() + timeout
             while not (buff.endswith(password_prompt + ' ') 
                        or buff.endswith(password_prompt)):
                 #print(f"Device login not ending with prompt, last few characters are {buff[-8:-1]}\n")
@@ -53,23 +63,23 @@ class SSHConnection(Connection):
                     buff = self.connection.recv(MAX_BUFF).decode('ascii')
                     #print(f"Length of buffer: {len(buff)}")
                     out += buff
-                if time.time() > timeout:
+                if time.time() > time_max:
                     print("TIMEOUT")
                     raise Exception("Password prompt timeout")
                 
-            #print("Got device prompt now, sending password\n")
+            print("Got device prompt now, sending password\n")
             self.connection.send(password + '\n')
             time.sleep(1)
         buff = self.connection.recv(MAX_BUFF).decode('ascii')
 
-        timeout = time.time() + self.USER_TIMEOUT
+        time_max = time.time() + timeout
         while not (buff.endswith(prompt + ' ') or buff.endswith(prompt)):
             #print(f"Not getting prompt, last few characters are {buff[-10:-1]}\n")
             #time.sleep(1)
             if self.connection.recv_ready():
                 buff = self.connection.recv(MAX_BUFF).decode('ascii')
                 out += buff
-            if time.time() > timeout:
+            if time.time() > time_max:
                 print("TIMEOUT")
                 raise Exception("Prompt timeout")
                 #raise Exception("Password prompt timeout")
@@ -91,7 +101,7 @@ class SSHConnection(Connection):
     def run_commands_ssh(self):
 
         self.connection.send("terminal length 0\n")
-        tmp = self.get_prompt(deviceType=self.oem)
+        tmp = self.get_prompt()
         self.log += tmp
         out_dict = {'prompt': tmp}
 
@@ -99,7 +109,7 @@ class SSHConnection(Connection):
             self.log += f"\r\n------------{command} Output-------------\r\n"
             #print(f"Sending command: {command}")
             self.connection.send(command + '\n')
-            tmp = self.get_prompt(deviceType=self.oem)
+            tmp = self.get_prompt()
             self.log += tmp
             out_dict[command] = '\n'.join(tmp.split('\n')[1:-1])
             #print(f"Received for command {command}:\n{out}")
@@ -126,8 +136,7 @@ class SSHConnection(Connection):
             {self.user}@{self.device}\n")
 
             time.sleep(1)
-            self.log += self.get_prompt(deviceType=self.oem,
-                                    enterPassword=True,
+            self.log += self.get_prompt(enterPassword=True,
                                     password=self.password) + "\r\n"
             #print(f"Log:\n{self.log}")
             self.execution_output['output'] = self.run_commands_ssh()
@@ -168,6 +177,58 @@ class SSHConnection(Connection):
         else:
             self.execute_direct_ssh()
         return None
+    
+    def load_image(self, access_server, file_path, filename):
+        if file_path:
+            full_path = file_path + '/' + filename
+        else:
+            full_path = filename
+        try:
+            if self.is_jmp:
+                self.log += self.get_connection(host=self.jmp_server,
+                                                username=self.js_user,
+                                                password=self.js_password,
+                                                type='linux')
+                #print("Received jumpbox prompt\n")
+                self.connection.send(f"ssh -o \"StrictHostKeyChecking=no\" \
+                {self.user}@{self.device}\n")
+                time.sleep(1)
+                self.log += self.get_prompt(deviceType=self.oem,
+                                            enterPassword=True,
+                                            password=self.password) + "\r\n"
+                #print("login to device")
+            else:
+                self.log += self.get_connection(host=self.device,
+                                    username=self.user,
+                                    password=self.password,
+                                    type=self.oem) + "\r\n"
+            #print("Sending tftp command")
+            self.connection.send('copy tftp: flash: vrf MGMT\n')
+            self.log += self.get_prompt(prompt=']?')
+            #print(f"Entering access server: {access_server}")
+            self.connection.send(access_server + '\n')
+            self.log += self.get_prompt(prompt=']?')
+            #print(f"Entering path now: {full_path}")
+            self.connection.send(full_path + '\n')
+            self.log += self.get_prompt(prompt=']?')
+            #print("Enter many times")
+            self.connection.send('\n\n\n')
+            buff = self.get_prompt(timeout=180)
+            #print(f"Received final: {buff}")
+            self.log += buff
+            if not r'%Error' in buff:
+                self.execution_output['status'] = True
+                #print(f"Sending command: 'show flash: | i {filename}'")
+                self.connection.send(f"show flash: | i {filename}\n")
+                self.execution_output['file_found'] = self.get_prompt()
+                #print("Received prompt after file_found")
+                self.log += self.execution_output['file_found']
+            else:
+                self.execution_output['status'] = False
+                self.execution_output['error'] = f"File not loaded\nLogs:\n{self.log}"
+            self.client.close()
+        except:
+            self.execution_output['error'] = "Internal error\n" + traceback.format_exc()
 
 class TelnetConnection(Connection):
 

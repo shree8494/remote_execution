@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import psycopg2
-import dbconstants
+#import psycopg2
+#import dbconstants
 import constants
 import re
 import time
@@ -9,51 +9,11 @@ import time
 #import datetime
 #import uuid
 import remote_execution
-from threading import Thread
-
-def get_firmware_path(upgrade_version, oem):
-    
-    query = f"""SELECT ftp_server||ftp_path||'/'||ftp_filename as file_path
-                FROM netauto_uf_version_master
-                WHERE compatible_version = '{upgrade_version}'
-                    AND oem = '{oem}';"""
-    try:
-        with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
-            with conn.cursor() as cur:
-                cur.execute(query)
-                out = cur.fetchall()
-            conn.commit()
-        return out[0][0]
-    except Exception as e:
-        raise
-
-
-def get_compatible_versions(current_version, oem):
-
-    query = f"""SELECT compatible_version
-                FROM netauto_uf_version_master
-                WHERE current_version = '{current_version}'
-                    AND oem = '{oem}';"""
-    try:
-        with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
-            with conn.cursor() as cur:
-                cur.execute(query)
-                out = cur.fetchall()
-            conn.commit()
-        return [i[0] for i in out]
-    except Exception as e:
-        raise
-
-
-def get_version(show_version_raw, oem):
-
-    pattern = re.compile(constants.show_version[oem])
-    result = re.search(pattern, show_version_raw)
-    if result:
-        version = result.group('version')
-    else:
-        raise Exception('Pattern not matched')
-    return version
+import threading
+import queue
+from lib.connection_utils import SSHConnection, TelnetConnection
+from lib.db_utils import get_firmware_path, get_compatible_versions
+from lib.parse_utils import get_version
 
 def ping_handler(request):
     
@@ -81,18 +41,69 @@ def predeployment_handler(request):
                                                           request['OEM'])
             response[device] = dict(current_version=current_version,
                                     compatible_versions=compatible_versions)
+            response[device]['status'] = len(compatible_versions) != 0
         except Exception as e:
             print(e)
-            response[device] = {}
-    
+            response[device] = dict(current_version='',
+                                    compatible_versions=[],
+                                    status=False)
     return response
+
+def deploy_single_device(request, output_q):
+
+    upgrade_version = request['upgrade_version']
+    access_server, file_path, filename = get_firmware_path(upgrade_version,
+                                                           request['OEM'])
+    request['access_server'] = access_server
+    request['file_path'] = file_path
+    request['filename'] = filename
+    tftp_execution_output, tftp_log = load_image(request,
+                                                (access_server,file_path,filename))
+    configure_boot(request)
+    pass
+
+
+
+def load_image(request):
+
+    request['commands'] = []
+    if request['deviceConnectionType'] == 'ssh':
+        c = SSHConnection(request)
+    elif request['deviceConnectionType'] == 'telnet':
+        c = TelnetConnection(request)
+    else:
+        raise Exception("Invalid device connection type")
+    c.load_image(request['access_server'],
+                 request['file_path'],
+                 request['filename'])
+    return c.execution_output, c.log
 
 def deployment_handler(request):
 
-    upgrade_version = request['upgrade_version']
-    firmware_path = get_firmware_path(upgrade_version, request['OEM'])
+    output_q = queue.Queue()
+    thread_list = []
+    out,log = {},''
 
-    pass
+    for device in request['deviceAddresses']:
+        single_device_request = request.copy()
+        single_device_request['device'] = device
+        device_thread = threading.Thread(target=deploy_single_device,
+                                         args=(single_device_request, output_q))
+        device_thread.start()
+        thread_list.append(device_thread)
+    
+    for device_thread in thread_list:
+        device_thread.join()
+
+    while not output_q.empty():
+        device, device_output, device_log = output_q.get()
+        log += device_log
+        out[device] = device_output
+    
+    #c.config_boot()
+    #c.reload()
+    print(f"logs:\n\n{log}")
+    print(f"output:\n\n{out}")
 
 def upgrade_firmware(request):
 
@@ -136,51 +147,24 @@ if __name__ == "__main__":
         System returned to ROM by reload
         System image file is "flash0:/vios_l2-adventerprisek9-m"
         Last reload reason: Unknown reason
-
-
-
-        This product contains cryptographic features and is subject to United
-        States and local country laws governing import, export, transfer and
-        use. Delivery of Cisco cryptographic products does not imply
-        third-party authority to import, export, distribute or use encryption.
-        Importers, exporters, distributors and users are responsible for
-        compliance with U.S. and local country laws. By using this product you
-        agree to comply with applicable laws and regulations. If you are unable
-        to comply with U.S. and local laws, return this product immediately.
-
-        A summary of U.S. laws governing Cisco cryptographic products may be found at:
-        http://www.cisco.com/wwl/export/crypto/tool/stqrg.html
-
-        If you require further assistance please contact us by sending email to
-        export@cisco.com.
-
-        Cisco IOSv () processor (revision 1.0) with 935289K/111616K bytes of memory.
-        Processor board ID 9AAF7VLR2TF
-        1 Virtual Ethernet interface
-        8 Gigabit Ethernet interfaces
-        DRAM configuration is 72 bits wide with parity disabled.
-        256K bytes of non-volatile configuration memory.
-        2097152K bytes of ATA System CompactFlash 0 (Read/Write)
-        0K bytes of ATA CompactFlash 1 (Read/Write)
-        0K bytes of ATA CompactFlash 2 (Read/Write)
-        0K bytes of ATA CompactFlash 3 (Read/Write)
-
-        Configuration register is 0x101"""
+        """
     
     request = {
-        "jmpServerIp":"54.209.112.219",
-        "jmpServerUsername":"ubuntu",
-        "jmpServerPassword":"ubuntu",
+        "jmpServerIp":"192.168.0.30",
+        "jmpServerUsername":"admin",
+        "jmpServerPassword":"admin",
         "OEM":"Cisco IOS",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["172.31.56.112","172.31.61.171","1.1.1.1"],
+        "deviceAddresses":["10.1.1.20","10.1.1.21"],
         "deviceConnectionType":"ssh",
-        "isJumpserver":True
+        "isJumpServer":True,
+        "upgrade_version": "Version 15.3",
+        "action": "PreDeployment"
         }
     #oem = 'Cisco IOS'
     #current_version = get_version(in1, oem)
     #print(get_compatible_versions(current_version, oem))
     #print(get_firmware_path('Version 15.3','Cisco IOS'))
     #print(ping_handler(request))
-    print(predeployment_handler(request))
+    print(upgrade_firmware(request))

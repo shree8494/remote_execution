@@ -48,3 +48,35 @@ def db_update(table, args_dict):
     return f"""INSERT INTO {table}({','.join(column_list)})
         VALUES({','.join(['%s']*len(column_tuple))})"""
     '''
+
+def get_firmware_path(upgrade_version, oem):
+    
+    query = f"""SELECT ftp_server,ftp_path,ftp_filename
+                FROM netauto_uf_version_master
+                WHERE compatible_version = '{upgrade_version}'
+                    AND oem = '{oem}';"""
+    try:
+        with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                out = cur.fetchall()
+            conn.commit()
+        return out[0]
+    except Exception as e:
+        raise
+
+def get_compatible_versions(current_version, oem):
+
+    query = f"""SELECT compatible_version
+                FROM netauto_uf_version_master
+                WHERE current_version = '{current_version}'
+                    AND oem = '{oem}';"""
+    try:
+        with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                out = cur.fetchall()
+            conn.commit()
+        return [i[0] for i in out]
+    except Exception as e:
+        raise
