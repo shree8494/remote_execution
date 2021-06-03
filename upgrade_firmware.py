@@ -63,6 +63,7 @@ def ping_handler(request):
     response = {}
     for device,output in out.items():
         response[device] = 'output' in output
+    print(f"Response:\n{response}")
     return response
 
 def predeployment_handler(request):
@@ -83,6 +84,7 @@ def predeployment_handler(request):
         except Exception as e:
             print(e)
             response[device] = {}
+    
     return response
 
 def deployment_handler(request):
@@ -94,6 +96,7 @@ def deployment_handler(request):
 
 def upgrade_firmware(request):
 
+    print(request)
     if request['action'] == 'Ping':
         return ping_handler(request)
     elif request['action'] == 'PreDeployment':
@@ -165,13 +168,13 @@ if __name__ == "__main__":
         Configuration register is 0x101"""
     
     request = {
-        "jmpServerIp":"192.168.0.30",
-        "jmpServerUsername":"admin",
-        "jmpServerPassword":"admin",
+        "jmpServerIp":"54.209.112.219",
+        "jmpServerUsername":"ubuntu",
+        "jmpServerPassword":"ubuntu",
         "OEM":"Cisco IOS",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["10.1.1.20","10.1.1.21"],
+        "deviceAddresses":["172.31.56.112","172.31.61.171","1.1.1.1"],
         "deviceConnectionType":"ssh",
         "isJumpserver":True
         }

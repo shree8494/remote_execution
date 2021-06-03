@@ -110,18 +110,17 @@ class SSHConnection(Connection):
     def execute_jmp_ssh(self):
 
         self.log += f"\r\n-------------------JumpServer--------------\r\n"
-        tmp = self.get_connection(host=self.jmp_server,
-                                   username=self.js_user,
-                                   password=self.js_password,
-                                   type=self.js_type) + "\r\n"
-        self.log += tmp
-        self.execution_output['Jump Server'] = tmp
-        
-        #self.execution_output[device] = {}
-        self.log += f"\r\n-------------------{self.device}--------------\r\n"
-        #output = {}
-
         try:
+            tmp = self.get_connection(host=self.jmp_server,
+                                    username=self.js_user,
+                                    password=self.js_password,
+                                    type=self.js_type) + "\r\n"
+            self.log += tmp
+            self.execution_output['Jump Server'] = tmp
+            
+            #self.execution_output[device] = {}
+            self.log += f"\r\n-------------------{self.device}--------------\r\n"
+            #output = {}
             #print(f"Connecting to {self.device}\n")
             self.connection.send(f"ssh -o \"StrictHostKeyChecking=no\" \
             {self.user}@{self.device}\n")
@@ -133,13 +132,13 @@ class SSHConnection(Connection):
             #print(f"Log:\n{self.log}")
             self.execution_output['output'] = self.run_commands_ssh()
             time.sleep(1)
+            self.client.close()
         except:
             error = "Internal error " + traceback.format_exc()
             self.execution_output['error'] = error
             self.log += error
         finally:
             self.execution_output['progress'] = 100
-        self.client.close()
         return None
 
     def execute_direct_ssh(self):
@@ -152,13 +151,13 @@ class SSHConnection(Connection):
                                 password=self.password,
                                 type=self.oem) + "\r\n"
             self.execution_output['output'] = self.run_commands_ssh()
+            self.client.close()
         except:
             error = "Internal error" + traceback.format_exc()
             self.execution_output['error'] = error
             self.log += error
         finally:
             self.execution_output['progress'] = 100
-        self.client.close()
         return None
 
     def execute(self):
@@ -243,6 +242,7 @@ class TelnetConnection(Connection):
             self.execution_output['output'] = self.run_commands_telnet()
             self.tn.write(b"exit\n")
             time.sleep(1)
+            self.tn.close()
 
         except:
             error = "Internal error" + traceback.format_exc()
@@ -250,6 +250,7 @@ class TelnetConnection(Connection):
             self.log += error
         finally:
             self.execution_output['progress'] = 100
+
         return None
 
     def execute_direct_telnet(self):
@@ -276,6 +277,7 @@ class TelnetConnection(Connection):
             self.execution_output['output'] = self.run_commands_telnet()
             self.tn.write(b"exit\n")
             time.sleep(1)
+            self.tn.close()
 
         except:
             error = "Internal error" + traceback.format_exc()
@@ -292,5 +294,5 @@ class TelnetConnection(Connection):
             self.execute_jmp_telnet()
         else:
             self.execute_direct_telnet()
-        self.tn.close()
+        #self.tn.close()
         return None
