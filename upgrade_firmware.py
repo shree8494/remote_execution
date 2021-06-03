@@ -71,7 +71,7 @@ def predeployment_handler(request):
     command = constants.get_version[request['OEM']]
     request['commands'] = [command]
     out = remote_execution.remote_execution(request, update_db=False)
-    #print(f"Output:\n{out}")
+    print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
         current_version_raw = output['output'][command]
@@ -84,7 +84,7 @@ def predeployment_handler(request):
         except Exception as e:
             print(e)
             response[device] = {}
-    
+            print(f"Response:\n{response}")
     return response
 
 def deployment_handler(request):
