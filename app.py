@@ -57,7 +57,7 @@ def handle_remote_execution():
   return jsonify(out)
 
 
-@app.route('/api/upgrade-firmware', methods=['POST'])
+@app.route('/api/upgrade_firmware', methods=['POST'])
 def handle_upgrader_firmware():
 
   request_json = request.get_json()

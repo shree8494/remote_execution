@@ -56,10 +56,10 @@ def get_version(show_version_raw, oem):
     return version
 
 def ping_handler(request):
-
+    
     request['commands'] = []
     out = remote_execution.remote_execution(request, update_db=False)
-    #print(f"Output:\n{out}")
+    print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
         response[device] = 'output' in output
@@ -96,7 +96,7 @@ def deployment_handler(request):
 
 def upgrade_firmware(request):
 
-    print(request)
+    print(f"request:\n{request}")
     if request['action'] == 'Ping':
         return ping_handler(request)
     elif request['action'] == 'PreDeployment':
@@ -176,14 +176,11 @@ if __name__ == "__main__":
         "devicePassword":"admin",
         "deviceAddresses":["172.31.56.112","172.31.61.171","1.1.1.1"],
         "deviceConnectionType":"ssh",
-        "isJumpserver":False
+        "isJumpserver":True
         }
     #oem = 'Cisco IOS'
     #current_version = get_version(in1, oem)
     #print(get_compatible_versions(current_version, oem))
-<<<<<<< Updated upstream
     #print(get_firmware_path('Version 15.3','Cisco IOS'))
-=======
->>>>>>> Stashed changes
-    print(ping_handler(request))
-    #print(predeployment_handler(request))
+    #print(ping_handler(request))
+    print(predeployment_handler(request))

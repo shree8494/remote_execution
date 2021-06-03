@@ -13,7 +13,7 @@ class Connection(object):
         self.oem = single_device_params['OEM'].lower()
         self.user = single_device_params['deviceUsername']
         self.password = single_device_params['devicePassword']
-        self.is_jmp = single_device_params['isJumpserver']
+        self.is_jmp = single_device_params['isJumpServer']
         self.device = single_device_params['device']
         self.commands = single_device_params['commands']
         self.conn_type = single_device_params['deviceConnectionType']
