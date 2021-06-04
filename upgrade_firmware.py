@@ -13,7 +13,7 @@ import threading
 import queue
 from lib.connection_utils import SSHConnection, TelnetConnection
 from lib.db_utils import get_firmware_path, get_compatible_versions
-from lib.parse_utils import get_version
+from lib.parse_utils import get_version, get_boot
 
 def ping_handler(request):
     
@@ -31,11 +31,11 @@ def predeployment_handler(request):
     command = constants.get_version[request['OEM']]
     request['commands'] = [command]
     out = remote_execution.remote_execution(request, update_db=False)
-    #print(f"Output:\n{out}")
+    print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
-        current_version_raw = output['output'][command]
         try:
+            current_version_raw = output['output'][command]
             current_version = get_version(current_version_raw, request['OEM'])
             compatible_versions = get_compatible_versions(current_version,
                                                           request['OEM'])
@@ -49,34 +49,86 @@ def predeployment_handler(request):
                                     status=False)
     return response
 
+def initialize_device(c):
+
+    c.initialize()
+    if 'error' in c.execution_output:
+        raise Exception(f"Unable to initialize {c.device}\n")
+    return
+
+def load_image(c, access_server, file_path, filename):
+
+    c.load_image(access_server, file_path, filename)
+    if 'error' in c.execution_output:
+        raise Exception(f"Unable to load image to {c.device}\n")
+    return
+
+def config_boot(c, filename):
+    try:
+        '''
+        command = constants.get_boot_cmd[c.oem]
+        c.execute([command])
+        boot_raw = c.execution_output['output'][command]
+        '''
+        boot_raw = 'boot system flash:vios_l2-adventerprisek9-m'
+        old_boot_file = get_boot(boot_raw, c.oem)
+        commands=["conf t",
+                  "no boot system",
+                  f"boot system flash:{filename}",
+                  f"boot system {old_boot_file}",
+                  "exit",
+                  "wr mem"]
+        c.execute(commands=commands)
+    except Exception as e:
+        raise Exception(e)
+    return
+
+def reload(c):
+
+    try:
+        c.reload()
+        c.terminate()
+        print(f"Logs before reload\n{c.log}")
+        time_max = time.time() + 180
+        while True:
+            print("Trying connection")
+            c.initialize()
+            print(f"Log: {c.log}")
+            if 'error' not in c.execution_output:
+                print("Reachable now")
+                break
+            if time.time() > time_max:
+                print("Timeout waiting for device to load")
+                raise Exception("Timeout waiting for device to load")
+        c.terminate()
+    except Exception as e:
+        raise Exception(e)
+    finally:
+        return
+
 def deploy_single_device(request, output_q):
 
+    device = request['device']
     upgrade_version = request['upgrade_version']
     access_server, file_path, filename = get_firmware_path(upgrade_version,
                                                            request['OEM'])
-    request['access_server'] = access_server
-    request['file_path'] = file_path
-    request['filename'] = filename
-    tftp_execution_output, tftp_log = load_image(request,
-                                                (access_server,file_path,filename))
-    configure_boot(request)
-    pass
-
-
-
-def load_image(request):
-
-    request['commands'] = []
     if request['deviceConnectionType'] == 'ssh':
         c = SSHConnection(request)
     elif request['deviceConnectionType'] == 'telnet':
         c = TelnetConnection(request)
     else:
-        raise Exception("Invalid device connection type")
-    c.load_image(request['access_server'],
-                 request['file_path'],
-                 request['filename'])
-    return c.execution_output, c.log
+        output_q.put((request['device'],'Error:Invalid Connection type',{}))
+        return
+    try:
+        initialize_device(c)
+        load_image(c, access_server, file_path, filename)
+        #config_boot(c, filename)
+        reload(c)
+    except Exception as e:
+        c.log = str(e) + "\n" + c.log
+    finally:
+        output_q.put((device, c.execution_output, c.log))
+    return
 
 def deployment_handler(request):
 
@@ -105,8 +157,57 @@ def deployment_handler(request):
     print(f"logs:\n\n{log}")
     print(f"output:\n\n{out}")
 
-def upgrade_firmware(request):
+def test_load_image(request):
+    access_server = '10.1.1.1'
+    file_path = '/files'
+    filename = 'text.exe'
+    request['device'] = '10.1.1.20'
+    c = TelnetConnection(request)
+    c.initialize()
+    c.load_image(access_server, file_path, filename)
+    c.terminate()
+    return c.log
 
+def test_config_boot(request):
+
+    filename = 'text.exe'
+    boot_raw = 'boot system flash:vios_l2-adventerprisek9-m'
+    old_boot_file = get_boot(boot_raw, 'cisco ios')
+    commands=["conf t",
+                "no boot system",
+                f"boot system flash:{filename}",
+                f"boot system {old_boot_file}",
+                "exit",
+                "wr mem"]
+    request['device'] = '10.1.1.20'
+    c = TelnetConnection(request)
+    c.initialize()
+    c.execute(commands=commands)
+    c.terminate
+    return c.log
+
+def test_reload(request):
+    request['device'] = '10.1.1.20'
+    c = SSHConnection(request)
+    c.initialize()
+    time.sleep(2)
+    c.reload()
+    c.terminate()
+    print(f"Logs before reload\n{c.log}")
+    time_max = time.time() + 180
+    while time.time() < time_max:
+        print("Trying connection")
+        c.initialize()
+        print(f"Log: {c.log}")
+        if 'error' not in c.execution_output:
+            print("Reachable now")
+            break
+    c.terminate()
+    
+
+
+def upgrade_firmware(request):
+    
     print(f"request:\n{request}")
     if request['action'] == 'Ping':
         return ping_handler(request)
@@ -115,7 +216,18 @@ def upgrade_firmware(request):
     elif request['action'] == 'Deployment':
         return deployment_handler(request)
     return None
+'''
+def upgrade_firmware(request):
 
+    return {'10.1.1.20':
+                {'current_version': 'Version 15.2',
+                 'compatible_versions': ['Version 15.3', 'Version 15.4'],
+                 'status': True},
+            '10.1.1.21':
+                {'current_version': 'Version 15.2',
+                 'compatible_versions': ['Version 15.3', 'Version 15.4'],
+                 'status': True}}
+'''
 
 '''
 {
@@ -175,25 +287,25 @@ if __name__ == "__main__":
         "OEM":"Cisco IOS",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["10.1.1.20","10.1.1.21"],
+        "deviceAddresses":["10.1.1.20"],
         "deviceConnectionType":"ssh",
         "isJumpServer":True,
         "upgrade_version": "Version 15.3",
-        "action": "PreDeployment"
+        "action": "Deployment"
         }
     
     aws_request = {
-        "jmpServerIp":"192.168.0.30",
-        "jmpServerUsername":"admin",
-        "jmpServerPassword":"admin",
+        "jmpServerIp":"52.90.23.12",
+        "jmpServerUsername":"ubuntu",
+        "jmpServerPassword":"ubuntu",
         "OEM":"Cisco IOS",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["18.209.224.60"],
+        "deviceAddresses":["54.160.66.94","54.165.109.54"],
         "deviceConnectionType":"ssh",
         "isJumpServer":False,
         "upgrade_version": "Version 15.3",
-        "action": "PreDeployment"
+        "action": "Ping"
     }
     #oem = 'Cisco IOS'
     #current_version = get_version(in2, oem)
@@ -201,4 +313,7 @@ if __name__ == "__main__":
     #print(get_compatible_versions(current_version, oem))
     #print(get_firmware_path('Version 15.3','Cisco IOS'))
     #print(ping_handler(request))
-    print(upgrade_firmware(aws_request))
+    print(upgrade_firmware(request))
+    #print(upgrade_firmware(aws_request))
+    #print(test_load_image(request))
+    #print(test_reload(request))
