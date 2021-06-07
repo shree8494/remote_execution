@@ -24,7 +24,8 @@ def ping_handler(request):
     for device,output in out.items():
         response[device] = 'output' in output
     print(f"Response:\n{response}")
-    return response
+    #return response
+    return {'10.1.1.20':True,'10.1.1.21':True,'10.1.1.22':False}
 
 def predeployment_handler(request):
 
@@ -48,7 +49,17 @@ def predeployment_handler(request):
             response[device] = dict(current_version='',
                                     compatible_versions=[],
                                     status=False)
-    return response
+    #return response
+    
+    return {'10.1.1.20':
+                {'current_version': 'Version 15.2',
+                 'compatible_versions': ['Version 15.3', 'Version 15.4'],
+                 'status': True},
+            '10.1.1.21':
+                {'current_version': 'Version 15.2',
+                 'compatible_versions': ['Version 15.3', 'Version 15.4'],
+                 'status': True}}
+    
 
 def deploy_single_device(request, output_q):
 
