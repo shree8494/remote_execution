@@ -6,7 +6,7 @@ import queue
 import threading
 from lib.connection_utils import SSHConnection, TelnetConnection
 
-def update_db(out, execution_params):
+def update_log_db(out, execution_params):
 
     sql_update_log = """INSERT INTO public.netauto_log("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Run_log","Connection_Type")
              		   VALUES(%s,%s,%s,%s,%s,%s,%s,%s);"""
@@ -24,13 +24,6 @@ def update_db(out, execution_params):
         with conn.cursor() as cur:
             cur.execute(sql_update_log, Update_EachIP_log)
         conn.commit()
-    '''
-    cur=conn.cursor()
-    cur.execute(sql_update_log, Update_EachIP_log)
-    conn.commit()
-    cur.close()
-    conn.close()
-    '''
     return None
 
 def remote_execution(execution_params, update_db=True, return_log=False):
@@ -57,9 +50,9 @@ def remote_execution(execution_params, update_db=True, return_log=False):
     for device in sorted(list(log_dict.keys())):
         log += log_dict[device]
     if update_db:
-        update_db(log, execution_params)
+        update_log_db(log, execution_params)
     if return_log:
-        return log, output
+        return output, log
     else:
         return output
 
@@ -70,11 +63,16 @@ def remote_execution_device(single_device_params, output_q):
     elif single_device_params['deviceConnectionType'] == 'ssh':
         c = SSHConnection(single_device_params)
     else:
-        raise Exception("Invalid connection type")
-    c.execute()
+        output_q.put((single_device_params['device'],
+                        "Error: Invalid connection type", {}))
+        return
+    c.initialize()
+    if 'error' not in c.execution_output:
+        c.execute(commands=single_device_params['commands'])
+    c.terminate()
     #out_dict = {single_device_params['device']: (c.log, c.execution_output)}
     output_q.put((single_device_params['device'], c.log, c.execution_output))
-    return None
+    return
     #update_db(c.log, single_device_params)
     #return c.execution_output
 
@@ -107,10 +105,10 @@ if __name__=="__main__":
         "deviceUsername":"admin",
         "devicePassword":"admin",
         "deviceAddresses":["10.1.1.20","10.1.1.99"],
-        "commands":["show version"],
+        "commands":["show ip interface brief"],
         "deviceConnectionType":"telnet",
         "isJumpServer":True
         }
     #out = test_all(in1)
-    out=remote_execution(in1)
+    out=remote_execution(in1, update_db=False, return_log=True)
     print(out)
