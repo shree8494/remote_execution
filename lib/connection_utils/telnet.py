@@ -105,7 +105,7 @@ class TelnetConnection(Connection):
             full_path = filename
         try:
             #print("Sending tftp command")
-            self.tn.write(b"copy tftp: flash: vrf MGMT\n")
+            self.tn.write(b"copy tftp: flash:\n")
             self.log += self.get_prompt(prompt=']?')
             #print(f"Entering access server: {access_server}")
             self.tn.write(access_server.encode('ascii') + b"\n")
@@ -124,8 +124,13 @@ class TelnetConnection(Connection):
                 command = f"show flash: | i {filename}\n"
                 self.tn.write(command.encode('ascii') + b"\n")
                 self.execution_output['file_found'] = self.get_prompt()
-                #print("Received prompt after file_found")
                 self.log += self.execution_output['file_found']
+                
+                command = f"verify /md5 flash:{filename}"
+                self.tn.write(command.encode('ascii') + b"\n")
+                self.execution_output['md5_check'] = self.get_prompt()
+                #print("Received prompt after file_found")
+                self.log += self.execution_output['md5_check']
             else:
                 self.execution_output['status'] = False
                 self.execution_output['error'] = f"File not loaded\nLogs:\n{self.log}"

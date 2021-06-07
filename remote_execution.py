@@ -52,7 +52,7 @@ def remote_execution(execution_params, update_db=True, return_log=False):
     if update_db:
         update_log_db(log, execution_params)
     if return_log:
-        return log, output
+        return output, log
     else:
         return output
 

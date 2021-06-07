@@ -10,7 +10,7 @@ class SSHConnection(Connection):
     PW_PROMPT = {'linux': 'password:',
                  'cisco': 'Password:', 'cisco ios': 'Password:'}
     MAX_BUFF = 65535
-    USER_TIMEOUT = 10
+    USER_TIMEOUT = 20
 
     def __init__(self, single_device_params):
         super().__init__(single_device_params)
@@ -150,7 +150,7 @@ class SSHConnection(Connection):
             full_path = filename
         try:
             #print("Sending tftp command")
-            self.connection.send('copy tftp: flash: vrf MGMT\n')
+            self.connection.send('copy tftp: flash:\n')
             self.log += self.get_prompt(prompt=']?')
             #print(f"Entering access server: {access_server}")
             self.connection.send(access_server + '\n')
@@ -167,9 +167,17 @@ class SSHConnection(Connection):
                 self.execution_output['status'] = True
                 #print(f"Sending command: 'show flash: | i {filename}'")
                 self.connection.send(f"show flash: | i {filename}\n")
-                self.execution_output['file_found'] = self.get_prompt()
+                tmp = self.get_prompt()
+                self.execution_output['file_found'] = tmp
+                self.log += tmp
+
                 #print("Received prompt after file_found")
-                self.log += self.execution_output['file_found']
+                self.connection.send(f"verify /md5 flash:{filename}\n")
+                tmp = self.get_prompt()
+                #print("Got prompt after verify")
+                self.execution_output['md5_check'] = tmp
+                self.log += tmp
+                #self.log += self.execution_output['file_found']
             else:
                 self.execution_output['status'] = False
                 self.execution_output['error'] = f"File not loaded\nLogs:\n{self.log}"
