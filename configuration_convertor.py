@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Dec  2 20:51:50 2018
-
-@author: Shubha.KS
-"""
 import psycopg2
 import dbconstants
 
@@ -76,6 +71,7 @@ import re
 from mako.template import Template
 
 def convert(source_device, target_device, input_text):
+  refresh_conversion_map()
   input_text=input_text+"\n"
   out_text = ""
   errors_text = ""
@@ -85,6 +81,7 @@ def convert(source_device, target_device, input_text):
       if conversion_data[source_device] is None or conversion_data[target_device] is None:
         continue
       #print(conversion_data[source_device]["regex"])
+      #result = re.search(conversion_data[source_device]["regex"], input_text)
       result = re.match(conversion_data[source_device]["regex"], input_text)
       if result:
         template = Template(conversion_data[target_device]["template"])
@@ -95,6 +92,7 @@ def convert(source_device, target_device, input_text):
               input_text[result.start():result.end()].strip(),
               str(err)
             )
+        #input_text =input_text[:result.start()] + input_text[result.end():]
         input_text = input_text[result.end():]
         break
     else:
