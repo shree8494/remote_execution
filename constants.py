@@ -21,8 +21,21 @@ predeployment_cmds={
          'Cisco NXOS': ['show ip interface brief','show ip route']}
 }
 
+postdeployment_cmds={
+    'base':
+        {'cisco ios': ['show log',
+                       'show errdisable detect',
+                       'show version',
+                       'show file system',
+                       'show process cpu',]},
+    'switch':
+        {'cisco ios': ['show interface status','show ip interface brief']},
+    'router':
+        {'cisco ios': ['show ip interface brief','show ip route']}
+}
+
 show_version = {
-    'Cisco IOS': r"(?P<version>Version\s\S[^,|\r|\n|\r\n]+)"
+    'cisco ios': r"(?P<version>Version\s\S[^,|\r|\n|\r\n]+)"
     }
 
 show_boot = {

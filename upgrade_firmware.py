@@ -12,8 +12,8 @@ import remote_execution
 import threading
 import queue
 from lib.connection_utils import SSHConnection, TelnetConnection
-from lib.db_utils import get_firmware_path, get_compatible_versions, update_uf_log
-from lib.parse_utils import get_version, get_boot
+from lib.db_utils import *
+from lib.parse_utils import *
 
 def ping_handler(request):
     
@@ -24,15 +24,18 @@ def ping_handler(request):
     for device,output in out.items():
         response[device] = 'output' in output
     print(f"Response:\n{response}")
-    #update_uf_log(log=log, request=request, action='ping')
+    update_uf_log(log=log, request=request, action='ping')
     return response
 
 def predeployment_handler(request):
 
-    command = constants.get_version[request['OEM']]
-    request['commands'] = [command]
+    oem = request['OEM'].lower()
+    device_type = request['deviceType'].lower()
+    command = constants.get_version[oem]
+
+    request['commands'] = [command] + constants.predeployment_cmds[device_type][oem]
     out, log = remote_execution.remote_execution(request, update_db=False, return_log=True)
-    master_log = log
+    update_uf_log(log=log, request=request, action='predeployment')
     #print(f"Output:\n{out}")
     response = {}
     for device,output in out.items():
@@ -49,6 +52,20 @@ def predeployment_handler(request):
             response[device] = dict(current_version='',
                                     compatible_versions=[],
                                     status=False)
+    return response
+
+def postdeployment_handler(request):
+
+    response = {}
+    oem = request['OEM'].lower()
+    device_type = request['deviceType']
+    request['commands'] = constants.postdeployment_cmds['base'][oem] \
+                          + constants.postdeployment_cmds[device_type][oem]
+    out, log = remote_execution.remote_execution(request, update_db=False, return_log=True)
+    update_uf_log(log=log, request=request, action='postdeployment')
+
+    for device, output in out.items():
+        response[device] = 'error' not in output
     return response
 
 def initialize_device(c):
