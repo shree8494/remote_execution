@@ -58,7 +58,7 @@ def postdeployment_handler(request):
 
     response = {}
     oem = request['OEM'].lower()
-    device_type = request['deviceType']
+    device_type = request['deviceType'].lower()
     request['commands'] = constants.postdeployment_cmds['base'][oem] \
                           + constants.postdeployment_cmds[device_type][oem]
     out, log = remote_execution.remote_execution(request, update_db=False, return_log=True)
@@ -250,7 +250,10 @@ def upgrade_firmware(request):
         return predeployment_handler(request)
     elif request['action'] == 'Deployment':
         return deployment_handler(request)
-    return None
+    elif request['action'] == 'PostDeployment':
+        return postdeployment_handler(request)
+    else:
+        return "Error: Invalid action"
 '''
 def upgrade_firmware(request):
 
@@ -320,13 +323,14 @@ if __name__ == "__main__":
         "jmpServerUsername":"admin",
         "jmpServerPassword":"admin",
         "OEM":"Cisco IOS",
+        "deviceType": "Switch",
         "deviceUsername":"admin",
         "devicePassword":"admin",
-        "deviceAddresses":["10.1.1.20"],
+        "deviceAddresses":["10.1.1.20","10.1.1.21"],
         "deviceConnectionType":"ssh",
         "isJumpServer":True,
         "upgrade_version": "Version 15.3",
-        "action": "Deployment"
+        "action": "PostDeployment"
         }
     
     aws_request = {
@@ -349,8 +353,8 @@ if __name__ == "__main__":
     #print(get_compatible_versions(current_version, oem))
     #print(get_firmware_path('Version 15.3','Cisco IOS'))
     #print(ping_handler(request))
-    #print(upgrade_firmware(request))
-    print(upgrade_firmware(aws_request))
+    print(upgrade_firmware(request))
+    #print(upgrade_firmware(aws_request))
     #print(test_load_image(aws_request))
     #print(test_config_boot(aws_request))
     #print(test_reload(aws_request))
