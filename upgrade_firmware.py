@@ -16,7 +16,6 @@ from lib.db_utils import *
 from lib.parse_utils import *
 
 def ping_handler(request):
-    
     request['commands'] = []
     out, log = remote_execution.remote_execution(request, update_db=False, return_log=True)
     print(f"Output:\n{out}")
