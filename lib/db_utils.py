@@ -90,24 +90,27 @@ def update_uf_log(log, request, action):
         unique_uuid = uuid.uuid4().hex
         oem = request['OEM']
         conn_type = request['deviceConnectionType']
-        psql_command = f"""INSERT INTO netauto_uf_log
+        psql_command = """INSERT INTO netauto_uf_log
                         ("Run_ID","Netauto_Module","IP_Hostname","OEM","Executed_Date","Executed_By","Ping_log","Connection_type")
                         VALUES
-                        ({unique_uuid},"Upgrade_firmware",{ip_hostname},{oem},{datetime.datetime.now()},"Admin",{log},{conn_type});"""
+                        (%s,%s,%s,%s,%s,%s,%s,%s);"""
+        data = (unique_uuid,"Upgrade_firmware",ip_hostname,oem,datetime.datetime.now(),"Admin",log,conn_type)
     elif action == 'predeployment':
-        psql_command = f"""UPDATE netauto_uf_log
-                        set "PreDeployment_log" = {log}
+        psql_command = """UPDATE netauto_uf_log
+                        set "PreDeployment_log" = %s
                         where "ID" in(
                             select max("ID") from netauto_uf_log
                         );"""
+        data = (log,)
     elif action == 'postdeployment':
-        psql_command = f"""UPDATE netauto_uf_log
-                        set "PostDeployment_log" = {log}
+        psql_command = """UPDATE netauto_uf_log
+                        set "PostDeployment_log" = %s
                         where "ID" in(
                             select max("ID") from netauto_uf_log
                         );"""
+        data = (log,)
     with psycopg2.connect(**dbconstants.DBCONNECTION_PARAMS) as conn:
         with conn.cursor() as cur:
-            cur.execute(psql_command)
-            cur.commit()
+            cur.execute(psql_command, data)
+        conn.commit()
     return None
