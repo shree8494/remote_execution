@@ -26,6 +26,7 @@ def ping_handler(request):
     print(f"Response:\n{response}")
     update_uf_log(log=log, request=request, action='ping')
     return response
+    #return {'10.1.1.20':True,'10.1.1.21':True,'10.1.1.22':False,}
 
 def predeployment_handler(request):
 
@@ -53,6 +54,16 @@ def predeployment_handler(request):
                                     compatible_versions=[],
                                     status=False)
     return response
+    '''
+    return {'10.1.1.20':
+                {'current_version': 'Version 15.2',
+                 'compatible_versions': ['Version 15.3', 'Version 15.4'],
+                 'status': True},
+            '10.1.1.21':
+                {'current_version': 'Version 15.2',
+                 'compatible_versions': ['Version 15.3', 'Version 15.4'],
+                 'status': True}}
+    '''
 
 def postdeployment_handler(request):
 
@@ -67,6 +78,7 @@ def postdeployment_handler(request):
     for device, output in out.items():
         response[device] = 'error' not in output
     return response
+    #return {'10.1.1.20':True,'10.1.1.21':True,'10.1.1.22':False,}
 
 def initialize_device(c):
 
