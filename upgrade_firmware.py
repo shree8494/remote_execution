@@ -41,9 +41,9 @@ def predeployment_handler(request):
     for device,output in out.items():
         try:
             current_version_raw = output['output'][command]
-            current_version = get_version(current_version_raw, request['OEM'])
-            compatible_versions = get_compatible_versions(current_version,
-                                                          request['OEM'])
+            current_version = get_version(current_version_raw, oem)
+            print(f"Current version: {current_version}")
+            compatible_versions = get_compatible_versions(current_version,request['OEM'])
             response[device] = dict(current_version=current_version,
                                     compatible_versions=compatible_versions)
             response[device]['status'] = len(compatible_versions) != 0
@@ -330,7 +330,7 @@ if __name__ == "__main__":
         "deviceConnectionType":"ssh",
         "isJumpServer":True,
         "upgrade_version": "Version 15.3",
-        "action": "PostDeployment"
+        "action": "PreDeployment"
         }
     
     aws_request = {

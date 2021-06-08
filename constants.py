@@ -1,6 +1,6 @@
 get_version = {
-    'Cisco IOS': 'show version',
-    'Cisco NXOS': 'show version'
+    'cisco ios': 'show version',
+    'cisco nxos': 'show version'
 }
 
 get_boot_cmd = {
@@ -8,17 +8,17 @@ get_boot_cmd = {
 }
 
 get_dir = {
-    'Cisco IOS': 'show flash:',
-    'Cisco NXOS': ''
+    'cisco ios': 'show flash:',
+    'cisco nxos': ''
 }
 
 predeployment_cmds={
     'switch':
-        {'Cisco IOS': ['show interface status','show ip interface brief'],
-         'Cisco NXOS': []},
+        {'cisco ios': ['show interface status','show ip interface brief'],
+         'cisco nxos': []},
     'router':
-        {'Cisco IOS': ['show ip interface brief','show ip route'],
-         'Cisco NXOS': ['show ip interface brief','show ip route']}
+        {'cisco ios': ['show ip interface brief','show ip route'],
+         'cisco nxos': ['show ip interface brief','show ip route']}
 }
 
 postdeployment_cmds={
