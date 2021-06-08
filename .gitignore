@@ -5,3 +5,4 @@ output/*.txt
 test*
 Pipfile*
 *.backup
+test
